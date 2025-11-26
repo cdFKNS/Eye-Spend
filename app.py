@@ -1,50 +1,117 @@
 import streamlit as st
 import pandas as pd
-import json
-import os
 import random
 from datetime import datetime
+import json
 
-# In a real scenario, use: import google.generativeai as genai
+# --- CONFIGURATION & STYLING ---
+st.set_page_config(
+    page_title="AI Expense Guardian", 
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# --- CONFIGURATION ---
-st.set_page_config(page_title="AI Expense Guardian", layout="wide")
+# Custom CSS for a dark, professional, and interactive look
+custom_css = """
+<style>
+    /* General Styling for Dark Theme */
+    .stApp {
+        background-color: #0d1117; /* Dark background (GitHub Dark Mode) */
+        color: #c9d1d9; /* Light text */
+    }
 
-# --- AI INTEGRATION (MOCKED FOR DEMO STABILITY) ---
-# As the AI Lead, this is where you would connect the actual LLM API.
-# We are mocking this to ensure the app runs immediately for your Capstone demo without API keys.
+    /* Primary Container Styling (for cards) */
+    .stContainer, .stAlert, .stButton>button, [data-testid="stSidebar"] {
+        background-color: #161b22; /* Slightly lighter dark card background */
+        border-radius: 12px;
+        border: 1px solid #30363d;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+    }
 
+    /* Header/Title */
+    h1 {
+        color: #58a6ff; /* Blue accent for titles */
+        border-bottom: 2px solid #30363d;
+        padding-bottom: 10px;
+    }
+
+    /* Metric Boxes Enhancement */
+    [data-testid="stMetric"] {
+        background-color: #161b22;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 5px solid #58a6ff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    /* Risk Status Coloring */
+    .risk-high {
+        color: #f85149; /* Red for high risk */
+        font-weight: bold;
+    }
+    .risk-medium {
+        color: #fcd95c; /* Yellow for medium risk */
+        font-weight: bold;
+    }
+    .risk-low {
+        color: #3fb950; /* Green for low risk */
+        font-weight: bold;
+    }
+    /* Coaching Accent */
+    .coaching-tip {
+        border-left: 4px solid #3fb950;
+        padding: 10px 15px;
+        margin: 15px 0;
+        background-color: #1f2937;
+        border-radius: 8px;
+    }
+
+    /* Button Hover Effect */
+    .stButton>button:hover {
+        border-color: #58a6ff;
+        color: #58a6ff;
+    }
+    
+    /* Progress Bar Customization */
+    .stProgress > div > div > div > div {
+        background-color: #58a6ff;
+    }
+</style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
+
+
+# --- AI INTEGRATION LOGIC (MOCKED FOR DEMO STABILITY) ---
 def analyze_receipt_with_ai(uploaded_image):
     """
-    Simulates sending the image to an LLM (like Gemini Vision).
-    The LLM would OCR the text and Analyze for risk simultaneously.
+    Simulates sending the image to an LLM (like Gemini Vision) for OCR and risk analysis.
+    This is where the actual LLM API call for vision, OCR, and risk assessment would go.
     """
-    # Simulate processing delay
     import time
     time.sleep(1.5)
     
     # Mock Response Logic based on "random" to show variety
-    mock_vendors = ["Starbucks", "Uber Rides", "Luxury Casino", "Office Depot", "Delta Airlines"]
+    mock_vendors = ["Starbucks Coffee", "Uber Rides", "Gaming Emporium (Casino)", "Office Depot", "Delta Airlines"]
     vendor = random.choice(mock_vendors)
+    amount = round(random.uniform(5.00, 1500.00), 2)
     
-    amount = round(random.uniform(10.00, 500.00), 2)
-    
-    # AI Logic: Flag suspicious items
+    # AI Logic: Flag suspicious items (Anomaly Detection)
     risk_score = 10
-    risk_reason = "Looks normal."
+    risk_reason = "Standard transaction, category matches vendor."
     category = "Travel & Meals"
 
-    if vendor == "Luxury Casino":
+    if "Casino" in vendor:
         risk_score = 95
-        risk_reason = "HIGH RISK: Gambling establishment detected."
+        risk_reason = "🚨 HIGH RISK: Gambling establishment detected. Requires HR review per Section 3.1."
         category = "Entertainment"
-    elif amount > 300 and vendor == "Starbucks":
-        risk_score = 80
-        risk_reason = "SUSPICIOUS: unusually high amount for coffee shop."
+    elif amount > 300 and "Starbucks" in vendor:
+        risk_score = 85
+        risk_reason = "SUSPICIOUS: Unusually high amount ($300+) for a meal/coffee expense."
         category = "Meals"
     elif amount > 1000:
-        risk_score = 60
-        risk_reason = "Medium Risk: Amount requires manager approval."
+        risk_score = 65
+        risk_reason = "Medium Risk: Exceeds $1000 threshold. Manager approval required."
+        category = "Software" if "Office Depot" in vendor else category
     
     return {
         "vendor": vendor,
@@ -55,71 +122,234 @@ def analyze_receipt_with_ai(uploaded_image):
         "risk_reason": risk_reason
     }
 
-# --- UI LAYOUT (Low-Code Interface) ---
-st.title("🛡️ AI-Enhanced Expense Approval")
-st.markdown("### OCR • Anomaly Detection • Auto-Categorization")
-
-# Sidebar for controls
-with st.sidebar:
-    st.header("Upload Receipt")
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
-    st.info("System Status: AI Model Online 🟢")
-
-col1, col2 = st.columns([1, 1])
-
-if uploaded_file is not None:
-    # Display Image
-    with col1:
-        st.subheader("Original Receipt")
-        st.image(uploaded_file, caption='Uploaded Receipt', use_column_width=True)
-        
-        if st.button("Analyze Expense"):
-            with st.spinner('AI is reading receipt and checking policy...'):
-                # CALL THE AI FUNCTION
-                data = analyze_receipt_with_ai(uploaded_file)
-                
-                # Store in session state for persistence
-                if 'history' not in st.session_state:
-                    st.session_state['history'] = []
-                st.session_state['history'].append(data)
-                
-                # Force reload to show results
-                st.rerun()
-
-# Display Results
-with col2:
-    st.subheader("AI Analysis Results")
+def get_financial_advice_and_prediction(df_history):
+    """
+    Simulates sending aggregate spending data to a specialized LLM (Gemini) 
+    for financial tips and predictive analysis (Forecasting).
+    """
+    import time
+    time.sleep(2)
     
-    if 'history' in st.session_state and st.session_state['history']:
-        latest = st.session_state['history'][-1]
-        
-        # Risk Meter
-        st.metric(label="Detected Amount", value=f"${latest['amount']}")
-        
-        risk_color = "green"
-        if latest['risk_score'] > 50: risk_color = "orange" 
-        if latest['risk_score'] > 80: risk_color = "red"
-        
-        st.markdown(f"**Risk Score:** :{risk_color}[{latest['risk_score']}/100]")
-        st.progress(latest['risk_score'])
-        
-        st.write(f"**Vendor:** {latest['vendor']}")
-        st.write(f"**Category:** {latest['category']}")
-        st.write(f"**AI Audit Note:** {latest['risk_reason']}")
-        
-        if latest['risk_score'] > 75:
-            st.error("❌ AUTO-REJECTION RECOMMENDED")
+    # Analyze trends from historical data for mock advice
+    advice_list = [
+        "Your **Software** spending is efficient at just 15% of your total budget. Keep utilizing subscription bundles.",
+        "The **Meals** category shows frequent high-value transactions. Consider setting a daily cap of $50 to cut costs by 15%.",
+        "**Entertainment** expenses currently exceed internal policy thresholds. We recommend cutting these expenses completely to save $1,200/month.",
+        "Optimize **Travel** by booking flights 21 days in advance; this could reduce airfare costs by 10% next month."
+    ]
+    
+    # Forecast (based on simple extrapolation + minor random variance)
+    forecast = df_history['Amount'].sum() * random.uniform(0.95, 1.05)
+    
+    return {
+        "monthly_forecast": round(forecast, 2),
+        "cuttable_expenses": "Entertainment, High-Value Meals",
+        "advice": advice_list
+    }
+
+# --- APPLICATION INTERFACE (Low-Code) ---
+st.title("🤖 AI Expense Guardian: Audit & Approval")
+st.markdown("Automated processing for **OCR, Anomaly Detection, and Auto-Categorization**.")
+
+# Initialize or load spending history
+if 'full_history' not in st.session_state:
+    # Create mock historical data for the Financial Coach to analyze
+    initial_data = {
+        'Category': ['Travel', 'Meals', 'Software', 'Office Supplies', 'Entertainment', 'Client Gifts'] * 20,
+        'Amount': [random.uniform(50, 500) for _ in range(120)],
+        'Date': [datetime.now() - pd.Timedelta(days=random.randint(1, 90)) for _ in range(120)]
+    }
+    st.session_state['full_history'] = pd.DataFrame(initial_data)
+
+# --- SIDEBAR: Upload & Controls ---
+with st.sidebar:
+    st.header("Upload New Receipt 🧾")
+    uploaded_file = st.file_uploader("Upload Image (JPG/PNG)", type=["jpg", "png", "jpeg"])
+    
+    st.divider()
+    
+    st.subheader("System Status")
+    st.success("AI Model (Gemini Vision) Online 🟢")
+    st.info("App ID: 7c2x99d4 (Kubernetes Pod)")
+
+
+# --- MAIN CONTENT LAYOUT: Tabs for Core Functions ---
+tab1, tab2, tab3 = st.tabs(["🔍 Expense Analyzer", "📊 Weekly Summary", "🧠 Financial Coach"])
+
+
+with tab1:
+    col1, col2 = st.columns([1, 1])
+
+    # LEFT COLUMN: Image Display & Analyze Button
+    with col1:
+        st.subheader("1. Receipt Document Scan")
+        if uploaded_file is not None:
+            # Updated to use width='stretch' if necessary, though st.image usually uses use_column_width
+            # adhering to strict user request for replacements where applicable.
+            st.image(uploaded_file, caption='Uploaded Receipt for OCR', use_container_width=True) 
+            
+            # Interactive Button (Fixed: width="stretch")
+            if st.button("🚀 Run AI Analysis", width="stretch"):
+                with st.spinner('**Processing:** AI is extracting data and checking against policy rules...'):
+                    data = analyze_receipt_with_ai(uploaded_file)
+                    
+                    # Store in session state for analyzer history and full history
+                    if 'history' not in st.session_state: st.session_state['history'] = []
+                    
+                    # Append new data to both histories
+                    st.session_state['history'].append(data)
+                    # Prepare new data for the full history DataFrame
+                    df_new = pd.DataFrame([data])
+                    df_new['Date'] = datetime.strptime(data['date'], '%Y-%m-%d')
+                    
+                    # Concatenate new data to full history
+                    st.session_state['full_history'] = pd.concat([st.session_state['full_history'], df_new.drop(columns=['date'])], ignore_index=True)
+                    
+                    st.rerun()
         else:
-            st.success("✅ AUTO-APPROVAL RECOMMENDED")
+            st.warning("Please upload a receipt image to begin the analysis.")
 
-# --- WEEKLY SUMMARY DASHBOARD ---
+    # RIGHT COLUMN: Analysis Results
+    with col2:
+        st.subheader("2. Audit & Risk Prediction")
+        
+        if 'history' in st.session_state and st.session_state['history']:
+            latest = st.session_state['history'][-1]
+            score = latest['risk_score']
+            
+            # Determine color class for dynamic styling
+            risk_class = "risk-low"
+            status_emoji = "✅"
+            approval_action = "Auto-Approve"
+
+            if score > 50: 
+                risk_class = "risk-medium"
+                status_emoji = "⚠️"
+                approval_action = "Requires Review"
+            if score > 80: 
+                risk_class = "risk-high"
+                status_emoji = "❌"
+                approval_action = "Auto-Reject"
+
+            
+            # Summary Card (Styled with custom markdown/HTML)
+            st.markdown(f"""
+            <div style="background-color: #1f2937; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <h3 style='color: #fff; margin-top: 0;'>{status_emoji} {approval_action} Recommendation</h3>
+                <p style='font-size: 1.2em;'>
+                    **Vendor:** {latest['vendor']} ({latest['date']})<br>
+                    **Category:** **<span class='risk-medium'>{latest['category']}</span>**<br>
+                </p>
+                <hr style='border-color: #30363d;'>
+                
+                <div style='display: flex; justify-content: space-between;'>
+                    <div style='text-align: center;'>
+                        <p style='margin: 0; font-size: 1em;'>Detected Amount</p>
+                        <p style='margin: 0; font-size: 2.5em; color: #58a6ff;'>${latest['amount']}</p>
+                    </div>
+                    <div style='text-align: center;'>
+                        <p style='margin: 0; font-size: 1em;'>AI Risk Score</p>
+                        <p class='{risk_class}' style='margin: 0; font-size: 2.5em;'>{score}/100</p>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Detailed Risk Breakdown
+            with st.expander("Detailed Anomaly Detection Report"):
+                st.markdown(f"""
+                - **Risk Reason:** {latest['risk_reason']}
+                - **Policy Check:** Passed all checks except for amount threshold.
+                - **Time of Day:** Normal business hours.
+                - **Location Match:** Geo-location (if available) did not match. (MOCK)
+                """)
+                col_btn1, col_btn2 = st.columns([1,1])
+                with col_btn1:
+                    if approval_action != "Auto-Reject":
+                        # Fixed: width="stretch"
+                        st.button("Confirm & Approve", type="primary", width="stretch")
+                    else:
+                        # Fixed: width="stretch"
+                        st.button("Flag for Manual Review", type="secondary", width="stretch")
+                with col_btn2:
+                    # Fixed: width="stretch"
+                    st.button("View Audit Log", type="secondary", width="stretch")
+        else:
+            st.info("Analysis results will appear here after running the AI.")
+
+with tab2:
+    st.header("📈 Weekly Spending Dashboard")
+    st.markdown("Overview of the last 90 days of processed expenses, auto-categorized by AI.")
+    
+    # Calculate Summary from full history
+    df_recent = st.session_state['full_history']
+    df_summary = df_recent.groupby('Category')['Amount'].sum().reset_index()
+    
+    col_dash1, col_dash2 = st.columns([2, 1])
+
+    with col_dash1:
+        st.bar_chart(df_summary.set_index("Category"), color="#58a6ff")
+    
+    with col_dash2:
+        total_spending = df_summary['Amount'].sum()
+        st.metric(label="Total Historical Spend", value=f"${total_spending:,.2f}")
+        
+        highest_category = df_summary.loc[df_summary['Amount'].idxmax()]
+        st.metric(label="Highest Category", value=f"{highest_category['Category']}")
+        
+        st.markdown(f"**Top 3 Breakdown:**")
+        # Fixed: width="stretch"
+        st.dataframe(
+            df_summary.sort_values(by="Amount", ascending=False).head(3).reset_index(drop=True),
+            width="stretch",
+            hide_index=True
+        )
+
+with tab3:
+    st.header("🧠 AI Financial Coach: Optimization")
+    st.markdown("Leveraging historical data to provide spending tips and monthly forecasting.")
+    
+    # Button to trigger the AI analysis (Fixed: width="stretch")
+    if st.button("Ask the Financial Coach (Analyze Full History)", type="primary", width="stretch"):
+        with st.spinner("AI is analyzing 90 days of expense data and running predictive models..."):
+            advice_data = get_financial_advice_and_prediction(st.session_state['full_history'])
+            st.session_state['advice'] = advice_data
+            st.rerun()
+
+    if 'advice' in st.session_state:
+        advice_data = st.session_state['advice']
+        
+        st.subheader("Monthly Financial Forecast")
+        col_pred1, col_pred2 = st.columns(2)
+        with col_pred1:
+            st.metric(label="Predicted Monthly Spend", 
+                      value=f"${advice_data['monthly_forecast']:,.2f}",
+                      delta="~5% increase over last month", # Mock delta value
+                      delta_color="inverse")
+        with col_pred2:
+            st.metric(label="Highest Potential Cut",
+                      value=advice_data['cuttable_expenses'],
+                      help="Based on policy violations and high non-essential spending.")
+
+        st.subheader("Actionable Spending Tips")
+        st.markdown("The AI recommends the following:**")
+        
+        for i, tip in enumerate(advice_data['advice']):
+            # Display tips using the custom styled container
+            st.markdown(f"""
+            <div class="coaching-tip">
+                **Tip {i+1}:** {tip}
+            </div>
+            """, unsafe_allow_html=True)
+            
+        st.caption("This analysis is based on aggregated, auto-categorized data processed by the AI.")
+
+# --- History ---
 st.divider()
-st.subheader("📊 Team Spending Summary")
-
-# Mock dataframe for dashboard
-df = pd.DataFrame({
-    "Category": ["Travel", "Meals", "Software", "Office Supplies", "Entertainment"],
-    "Amount": [1200, 450, 3000, 150, 600]
-})
-
-st.bar_chart(df.set_index("Category"))
+st.subheader("Recent Processing History")
+if 'history' in st.session_state and st.session_state['history']:
+    df_history = pd.DataFrame(st.session_state['history'])
+    # Fixed: width="stretch"
+    st.dataframe(df_history, width="stretch")
+else:
+    st.info("No expenses have been processed yet.")
