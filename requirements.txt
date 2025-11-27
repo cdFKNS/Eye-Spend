@@ -1,1 +1,4 @@
-streamlitpandaspytestpytest-mock
+streamlit
+pandas
+pytest
+pytest-mock
