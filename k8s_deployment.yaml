@@ -48,7 +48,7 @@ spec:
     app: expense-app
   ports:
   - protocol: TCP
-    port: 80
+    port: 8501
     targetPort: 8501
 ---
 apiVersion: route.openshift.io/v1
