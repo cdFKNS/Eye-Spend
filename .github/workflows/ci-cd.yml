@@ -66,6 +66,7 @@ jobs:
       run: |
         kubectl create secret generic app-secrets \
           --from-literal=api-key=${{ secrets.API_KEY }} \
+          --namespace=redkom-dev \
           --dry-run=client -o yaml | kubectl apply -f -
 
     - name: Deploy to Kubernetes
@@ -75,7 +76,7 @@ jobs:
         REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         sed -i "s|\${{ github.repository_owner }}|$REPO_OWNER|g" k8s_deployment.yaml
         
-        kubectl apply -f k8s_deployment.yaml
+        kubectl apply -f k8s_deployment.yaml -n redkom-dev
         
         # Force rollout restart to ensure new image is pulled
-        kubectl rollout restart deployment/expense-app-deployment
+        kubectl rollout restart deployment/expense-app-deployment -n redkom-dev
