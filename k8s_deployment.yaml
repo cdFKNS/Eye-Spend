@@ -43,10 +43,24 @@ kind: Service
 metadata:
   name: expense-app-service
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: expense-app
   ports:
   - protocol: TCP
     port: 80
     targetPort: 8501
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: expense-app-route
+  namespace: redkom-dev
+spec:
+  to:
+    kind: Service
+    name: expense-app-service
+  port:
+    targetPort: 8501
+  tls:
+    termination: edge
