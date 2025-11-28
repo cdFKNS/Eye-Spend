@@ -345,7 +345,7 @@ with tab1:
 
             
             # Summary Card (Styled with custom markdown/HTML) - Indentation Fix Applied
-            st.markdown(f"""
+st.markdown(f"""
 <div style="background-color: #1f2937; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
     <h3 style='color: #fff; margin-top: 0;'>{status_emoji} {approval_action} Recommendation</h3>
     <p style='font-size: 1.2em;'>
@@ -365,7 +365,7 @@ with tab1:
         </div>
     </div>
 </div>
-""", unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
             
             # Detailed Risk Breakdown
             with st.expander("Detailed Anomaly Detection Report"):
