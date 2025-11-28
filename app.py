@@ -3,8 +3,8 @@ import pandas as pd
 import random
 from datetime import datetime
 import json
-import base64 # New import for image embedding
-import os # New import for file path checking
+import base64 # Added for image embedding
+import os # Added for file path checking
 
 # --- CONFIGURATION & STYLING ---
 st.set_page_config(
@@ -16,7 +16,7 @@ st.set_page_config(
 # --------------------------------------------------------
 # 🎯 LOGO INTEGRATION: Using Base64 Encoding
 # --------------------------------------------------------
-LOGO_PATH = "./Assets/NewISpend.png" # Path relative to the app.py file
+LOGO_PATH = "./Assets/iSpend.png" # Path relative to the app.py file
 
 def get_base64_image(path):
     """Reads the image file and returns a Base64 data URL string."""
@@ -24,7 +24,7 @@ def get_base64_image(path):
         # Check if the file exists before attempting to open it
         if not os.path.exists(path):
             st.warning(f"Logo file not found at {path}. Using placeholder.")
-            # Fallback URL if the file is not found (useful for environments where file copy failed)
+            # Fallback URL if the file is not found
             return "https://placehold.co/50x50/58a6ff/0d1117?text=iS" 
 
         with open(path, "rb") as image_file:
@@ -58,7 +58,7 @@ custom_css = f"""
     h1 {{
         color: #58a6ff; /* Blue accent for titles */
         padding-bottom: 10px;
-        margin-top: 0; /* Adjust margin to align with logo */
+        margin-top: 0; /* Adjust margin to align with logo in custom header */
     }}
     
     /* Logo Container Styling (for the top bar) */
@@ -126,28 +126,33 @@ st.markdown(custom_css, unsafe_allow_html=True)
 def analyze_receipt_with_ai(uploaded_image):
     """
     Simulates sending the image to an LLM (like Gemini Vision) for OCR and risk analysis.
-    The logic below is now updated to prioritize realistic OCR simulation (Tech Haven)
-    when a file is uploaded, and then apply AI risk rules.
+    (Using the user's random mock logic for high variability)
     """
     import time
     time.sleep(1.5)
     
-    # --- MOCK OCR EXTRACTION (Now predictable based on a sample receipt) ---
-    vendor = "Tech Haven Electronics"
-    amount = 110.67 
-    category = "Office Supplies & Equipment"
+    # Mock Response Logic based on "random" to show variety (User's logic)
+    mock_vendors = ["Starbucks Coffee", "Uber Rides", "Gaming Emporium (Casino)", "Office Depot", "Delta Airlines"]
+    vendor = random.choice(mock_vendors)
+    amount = round(random.uniform(5.00, 1500.00), 2)
+    
+    # AI Logic: Flag suspicious items (Anomaly Detection)
+    risk_score = 10
+    risk_reason = "Standard transaction, category matches vendor."
+    category = "Travel & Meals"
 
-    # --- MOCK ANOMALY DETECTION (AI Logic) ---
-    risk_score = 15
-    risk_reason = "Standard expense for office equipment. Low risk."
-
-    # Introduce a predictable high-risk scenario for demonstration
-    if amount > 1000:
+    if "Casino" in vendor:
+        risk_score = 95
+        risk_reason = "🚨 HIGH RISK: Gambling establishment detected. Requires HR review per Section 3.1."
+        category = "Entertainment"
+    elif amount > 300 and "Starbucks" in vendor:
+        risk_score = 85
+        risk_reason = "SUSPICIOUS: Unusually high amount ($300+) for a meal/coffee expense."
+        category = "Meals"
+    elif amount > 1000:
         risk_score = 65
-        risk_reason = "Medium Risk: Exceeds $1000 threshold for single IT purchase. Manager approval required."
-    elif 'Gaming' in vendor: # If the mock data was from a gaming store
-        risk_score = 90
-        risk_reason = "🚨 HIGH RISK: Gaming-related vendor detected. Non-essential and violates Section 5.2."
+        risk_reason = "Medium Risk: Exceeds $1000 threshold. Manager approval required."
+        category = "Software" if "Office Depot" in vendor else category
     
     return {
         "vendor": vendor,
@@ -225,7 +230,7 @@ with st.sidebar:
     else:
         st.error("AI Model Offline 🔴")
         st.caption("Missing API Key")
-    
+        
     st.info("App ID: 7c2x99d4 (Kubernetes Pod)")
 
 
@@ -240,8 +245,8 @@ with tab1:
     with col1:
         st.subheader("1. Receipt Document Scan")
         if uploaded_file is not None:
-            # Fixed: width="stretch"
-            st.image(uploaded_file, caption='Uploaded Receipt for OCR', width="stretch")
+            # Using use_container_width=True for flexible sizing
+            st.image(uploaded_file, caption='Uploaded Receipt for OCR', use_container_width=True)
             
             # Interactive Button (Fixed: width="stretch")
             if st.button("🚀 Run AI Analysis", width="stretch"):
