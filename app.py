@@ -16,7 +16,7 @@ st.set_page_config(
 # --------------------------------------------------------
 # 🎯 LOGO INTEGRATION: Using Base64 Encoding
 # --------------------------------------------------------
-LOGO_PATH = "./Assets/iSpend.png" # Path relative to the app.py file
+LOGO_PATH = "./Assets/NewISpend.png" # Path relative to the app.py file
 
 def get_base64_image(path):
     """Reads the image file and returns a Base64 data URL string."""
