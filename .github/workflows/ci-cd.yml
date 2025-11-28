@@ -1,0 +1,83 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=latest
+          type=sha
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Configure Kubernetes Context
+      uses: azure/k8s-set-context@v3
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBECONFIG }}
+
+    - name: Create Secrets
+      run: |
+        kubectl create secret generic app-secrets \
+          --from-literal=api-key=${{ secrets.API_KEY }} \
+          --namespace=redkom-dev \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Deploy to Kubernetes
+      run: |
+        # Replace the placeholder in the manifest with the actual image name (lowercase)
+        # We need to ensure the repository owner part is lowercase for the image URL
+        REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        IMAGE_URL="ghcr.io/$REPO_OWNER/eye-spend:latest"
+        sed -i "s|REPLACE_ME_IMAGE|$IMAGE_URL|g" k8s_deployment.yaml
+        
+        kubectl apply -f k8s_deployment.yaml -n redkom-dev
+        
+        # Force rollout restart to ensure new image is pulled
+        kubectl rollout restart deployment/expense-app-deployment -n redkom-dev

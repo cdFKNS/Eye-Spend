@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: expense-app-deployment
+  namespace: redkom-dev
   labels:
     app: expense-app
 spec:
@@ -16,8 +17,9 @@ spec:
     spec:
       containers:
       - name: expense-app
-        # Replace 'your-dockerhub-username' with actual registry
-        image: your-dockerhub-username/expense-app:latest 
+        # Image from GitHub Container Registry
+        image: REPLACE_ME_IMAGE
+        imagePullPolicy: Always
         ports:
         - containerPort: 8501
         resources:
@@ -30,16 +32,35 @@ spec:
         env:
         - name: ENV
           value: "production"
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: api-key
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: expense-app-service
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: expense-app
   ports:
   - protocol: TCP
-    port: 80
+    port: 8501
     targetPort: 8501
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: expense-app-route
+  namespace: redkom-dev
+spec:
+  to:
+    kind: Service
+    name: expense-app-service
+  port:
+    targetPort: 8501
+  tls:
+    termination: edge

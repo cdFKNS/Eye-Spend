@@ -214,7 +214,14 @@ with st.sidebar:
     st.divider()
     
     st.subheader("System Status")
-    st.success("AI Model (Gemini Vision) Online 🟢")
+    import os
+    if os.environ.get("API_KEY"):
+        st.success("AI Model (Gemini Vision) Online 🟢")
+        st.caption("Secure API Key Loaded")
+    else:
+        st.error("AI Model Offline 🔴")
+        st.caption("Missing API Key")
+    
     st.info("App ID: 7c2x99d4 (Kubernetes Pod)")
 
 
