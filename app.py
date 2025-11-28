@@ -249,7 +249,7 @@ with tab1:
             st.image(uploaded_file, caption='Uploaded Receipt for OCR', use_container_width=True)
             
             # Interactive Button (Fixed: width="stretch")
-            if st.button("🚀 Run AI Analysis", width="stretch"):
+            if st.button("🚀 Run AI Analysis", use_container_width=True):
                 with st.spinner('**Processing:** AI is extracting data and checking against policy rules...'):
                     data = analyze_receipt_with_ai(uploaded_file)
                     
@@ -327,13 +327,13 @@ with tab1:
                 with col_btn1:
                     if approval_action != "Auto-Reject":
                         # Fixed: width="stretch"
-                        st.button("Confirm & Approve", type="primary", width="stretch")
+                        st.button("Confirm & Approve", type="primary", use_container_width=True)
                     else:
                         # Fixed: width="stretch"
-                        st.button("Flag for Manual Review", type="secondary", width="stretch")
+                        st.button("Flag for Manual Review", type="secondary", use_container_width=True)
                 with col_btn2:
                     # Fixed: width="stretch"
-                    st.button("View Audit Log", type="secondary", width="stretch")
+                    st.button("View Audit Log", type="secondary", use_container_width=True)
         else:
             st.info("Analysis results will appear here after running the AI.")
 
@@ -361,7 +361,7 @@ with tab2:
         # Fixed: width="stretch"
         st.dataframe(
             df_summary.sort_values(by="Amount", ascending=False).head(3).reset_index(drop=True),
-            width="stretch",
+            use_container_width=True,
             hide_index=True
         )
 
@@ -370,7 +370,7 @@ with tab3:
     st.markdown("Leveraging historical data to provide spending tips and monthly forecasting.")
     
     # Button to trigger the AI analysis (Fixed: width="stretch")
-    if st.button("Ask the Financial Coach (Analyze Full History)", type="primary", width="stretch"):
+    if st.button("Ask the Financial Coach (Analyze Full History)", type="primary", use_container_width=True):
         with st.spinner("AI is analyzing 90 days of expense data and running predictive models..."):
             advice_data = get_financial_advice_and_prediction(st.session_state['full_history'])
             st.session_state['advice'] = advice_data
@@ -410,6 +410,6 @@ st.subheader("Recent Processing History")
 if 'history' in st.session_state and st.session_state['history']:
     df_history = pd.DataFrame(st.session_state['history'])
     # Fixed: width="stretch"
-    st.dataframe(df_history, width="stretch")
+    st.dataframe(df_history, use_container_width=True)
 else:
     st.info("No expenses have been processed yet.")
