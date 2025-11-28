@@ -215,9 +215,13 @@ with st.sidebar:
     
     st.subheader("System Status")
     import os
-    if os.environ.get("API_KEY"):
+    api_key = os.environ.get("API_KEY")
+    if api_key:
         st.success("AI Model (Gemini Vision) Online 🟢")
         st.caption("Secure API Key Loaded")
+    elif api_key == "":
+        st.error("AI Model Offline 🔴")
+        st.caption("API Key is present but empty")
     else:
         st.error("AI Model Offline 🔴")
         st.caption("Missing API Key")
