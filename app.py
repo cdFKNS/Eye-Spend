@@ -149,7 +149,18 @@ def analyze_receipt_with_ai(uploaded_image):
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash-001')
+        
+        # Dynamic model selection to find a valid 'flash' model
+        model_name = 'gemini-1.5-flash'
+        try:
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods and 'flash' in m.name:
+                    model_name = m.name
+                    break
+        except Exception:
+            pass # Fallback to default if listing fails
+            
+        model = genai.GenerativeModel(model_name)
 
         # Convert UploadedFile to PIL Image
         image = Image.open(uploaded_image)
